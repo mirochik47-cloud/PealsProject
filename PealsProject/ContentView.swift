@@ -1,212 +1,342 @@
+
 import SwiftUI
 
 private enum PealsStyle {
-    static let background = Color(red: 0.035, green: 0.035, blue: 0.055)
-    static let card = Color(red: 0.095, green: 0.085, blue: 0.13)
-    static let purple = Color(red: 0.65, green: 0.40, blue: 1.0)
-    static let muted = Color.white.opacity(0.58)
+    static let bg = Color(red: 0.018, green: 0.016, blue: 0.035)
+    static let card = Color(red: 0.065, green: 0.045, blue: 0.12)
+    static let purple = Color(red: 0.62, green: 0.22, blue: 1.0)
+    static let muted = Color.white.opacity(0.62)
+}
+
+private enum PealsTab: String, CaseIterable {
+    case home = "Home"
+    case tweaks = "Tweaks"
+    case wallpapers = "Wallpapers"
+    case setup = "Setup"
+    case settings = "Settings"
+
+    var symbol: String {
+        switch self {
+        case .home: return "house.fill"
+        case .tweaks: return "slider.horizontal.3"
+        case .wallpapers: return "photo"
+        case .setup: return "iphone"
+        case .settings: return "gearshape.fill"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .home: return "YOUR DEVICE. YOUR RULES."
+        case .tweaks: return "MAKE IOS YOURS."
+        case .wallpapers: return "A NEW LOOK EVERY DAY."
+        case .setup: return "YOUR PERSONAL CONFIGURATION."
+        case .settings: return "TUNE YOUR EXPERIENCE."
+        }
+    }
 }
 
 struct ContentView: View {
-    private let columns = [
-        GridItem(.flexible(), spacing: 12),
-        GridItem(.flexible(), spacing: 12)
-    ]
+    @State private var selectedTab: PealsTab = .home
 
     var body: some View {
         ZStack {
-            PealsStyle.background.ignoresSafeArea()
+            PealsStyle.bg.ignoresSafeArea()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    header
-                    heroCard
-
-                    Text("EXPLORE")
-                        .font(.caption.weight(.bold))
-                        .tracking(2)
-                        .foregroundStyle(PealsStyle.muted)
-
-                    LazyVGrid(columns: columns, spacing: 12) {
-                        featureCard(
+            VStack(spacing: 0) {
+                Group {
+                    switch selectedTab {
+                    case .home:
+                        homeScreen
+                    case .tweaks:
+                        sectionScreen(
                             title: "Tweaks",
-                            subtitle: "Customize iOS",
-                            symbol: "slider.horizontal.3"
+                            description: "Personalize the way your device looks and feels.",
+                            symbol: "slider.horizontal.3",
+                            items: [
+                                ("Interface", "Appearance and visual options"),
+                                ("Animations", "Motion and transition settings"),
+                                ("Status Bar", "Explore status bar customization")
+                            ]
                         )
-
-                        featureCard(
+                    case .wallpapers:
+                        sectionScreen(
                             title: "Wallpapers",
-                            subtitle: "Make it yours",
-                            symbol: "photo"
+                            description: "Build your own visual style.",
+                            symbol: "photo",
+                            items: [
+                                ("Dark Collection", "Deep blacks and violet tones"),
+                                ("Neon Collection", "Bright colors and glowing accents"),
+                                ("My Wallpapers", "Your saved backgrounds")
+                            ]
                         )
-
-                        featureCard(
+                    case .setup:
+                        sectionScreen(
                             title: "My Setup",
-                            subtitle: "Your configuration",
-                            symbol: "iphone"
+                            description: "Your device and preferred configuration.",
+                            symbol: "iphone",
+                            items: [
+                                ("My Device", "Device information"),
+                                ("My Preferences", "Your selected appearance"),
+                                ("Compatibility", "Check supported features")
+                            ]
                         )
-
-                        featureCard(
+                    case .settings:
+                        sectionScreen(
                             title: "Settings",
-                            subtitle: "App preferences",
-                            symbol: "gearshape"
+                            description: "Configure your Peals Project experience.",
+                            symbol: "gearshape.fill",
+                            items: [
+                                ("Appearance", "Dark interface"),
+                                ("About Peals", "Version and project information"),
+                                ("Privacy", "Privacy information")
+                            ]
                         )
                     }
-
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: "info.circle.fill")
-                            .foregroundStyle(PealsStyle.purple)
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Compatibility Center")
-                                .font(.headline)
-
-                            Text("Check your iOS version and device before applying modifications.")
-                                .font(.subheadline)
-                                .foregroundStyle(PealsStyle.muted)
-                        }
-                    }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(PealsStyle.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-
-                    Text("PEALS PROJECT · EARLY BUILD")
-                        .font(.caption2)
-                        .tracking(1.5)
-                        .foregroundStyle(PealsStyle.muted)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
                 }
-                .padding(20)
+
+                Spacer(minLength: 4)
+                bottomBar
             }
         }
         .preferredColorScheme(.dark)
     }
 
-    private var header: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "sparkles")
-                .font(.title2.bold())
-                .foregroundStyle(PealsStyle.purple)
-                .frame(width: 48, height: 48)
-                .background(PealsStyle.card)
-                .clipShape(RoundedRectangle(cornerRadius: 15))
+    private var homeScreen: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                header
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text("PEALS PROJECT")
-                    .font(.headline.weight(.heavy))
-                    .tracking(1.2)
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        Label("PEALS DARK", systemImage: "moon.stars.fill")
+                            .font(.caption.bold())
+                            .foregroundStyle(PealsStyle.purple)
+                        Spacer()
+                        Text("BETA")
+                            .font(.caption2.bold())
+                            .padding(7)
+                            .background(PealsStyle.purple.opacity(0.25))
+                            .clipShape(Capsule())
+                    }
 
-                Text("YOUR DEVICE. YOUR STYLE.")
-                    .font(.caption2)
-                    .tracking(1)
-                    .foregroundStyle(PealsStyle.muted)
-            }
+                    Text("YOUR DEVICE.\nYOUR RULES.")
+                        .font(.system(size: 30, weight: .black))
 
-            Spacer()
+                    Text("A new home for your iOS customization.")
+                        .font(.subheadline)
+                        .foregroundStyle(PealsStyle.muted)
 
-            Image(systemName: "circle.grid.2x2.fill")
-                .foregroundStyle(PealsStyle.purple)
-                .font(.title3)
-        }
-        .padding(.top, 8)
-    }
-
-    private var heroCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Label("PEALS DARK", systemImage: "moon.stars.fill")
-                    .font(.caption.weight(.bold))
-                    .tracking(1)
-
-                Spacer()
-
-                Text("BETA")
-                    .font(.caption2.bold())
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(PealsStyle.purple.opacity(0.22))
-                    .clipShape(Capsule())
-            }
-            .foregroundStyle(PealsStyle.purple)
-
-            Text("YOUR DEVICE.\\nYOUR RULES.")
-                .font(.system(size: 32, weight: .black, design: .rounded))
-                .tracking(-0.8)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text("A new home for your iOS customization.")
-                .font(.subheadline)
-                .foregroundStyle(PealsStyle.muted)
-
-            HStack(spacing: 8) {
-                Image(systemName: "hammer.fill")
-                Text("Explore customizations")
-                Spacer()
-                Image(systemName: "arrow.up.right")
-            }
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.white)
-            .padding(14)
-            .background(PealsStyle.purple.opacity(0.75))
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-        }
-        .padding(22)
-        .background {
-            RoundedRectangle(cornerRadius: 26)
-                .fill(
+                    Button {
+                        selectedTab = .tweaks
+                    } label: {
+                        Label("Explore customizations", systemImage: "wand.and.stars")
+                            .font(.subheadline.bold())
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(14)
+                            .background(PealsStyle.purple)
+                            .clipShape(RoundedRectangle(cornerRadius: 13))
+                    }
+                }
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
                     LinearGradient(
                         colors: [
-                            Color(red: 0.18, green: 0.11, blue: 0.28),
-                            PealsStyle.card,
-                            Color(red: 0.08, green: 0.07, blue: 0.12)
+                            Color(red: 0.20, green: 0.08, blue: 0.35),
+                            PealsStyle.card
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 26)
-                .stroke(.white.opacity(0.08), lineWidth: 1)
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(PealsStyle.purple.opacity(0.5), lineWidth: 1)
+                }
+
+                Text("EXPLORE")
+                    .font(.caption.bold())
+                    .tracking(2)
+                    .foregroundStyle(PealsStyle.muted)
+
+                LazyVGrid(
+                    columns: [GridItem(.flexible()), GridItem(.flexible())],
+                    spacing: 12
+                ) {
+                    homeCard("Tweaks", "Customize iOS", "slider.horizontal.3", .tweaks)
+                    homeCard("Wallpapers", "Make it yours", "photo", .wallpapers)
+                    homeCard("My Setup", "Your configuration", "iphone", .setup)
+                    homeCard("Settings", "App preferences", "gearshape.fill", .settings)
+                }
+
+                HStack(spacing: 12) {
+                    Image(systemName: "shield.lefthalf.filled")
+                        .font(.title2)
+                        .foregroundStyle(PealsStyle.purple)
+
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Compatibility Center")
+                            .font(.headline)
+                        Text("Review device compatibility options.")
+                            .font(.caption)
+                            .foregroundStyle(PealsStyle.muted)
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(PealsStyle.card)
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+            }
+            .padding(20)
         }
     }
 
-    private func featureCard(
-        title: String,
-        subtitle: String,
-        symbol: String
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Image(systemName: symbol)
-                .font(.title2)
-                .foregroundStyle(PealsStyle.purple)
-                .frame(width: 44, height: 44)
-                .background(PealsStyle.purple.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 13))
+    private var header: some View {
+        HStack(spacing: 12) {
+            Image("PealsIcon")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 48, height: 48)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
 
-            VStack(alignment: .leading, spacing: 5) {
-                Text(title)
-                    .font(.headline)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("PEALS PROJECT")
+                    .font(.headline.bold())
+                    .tracking(1)
+
+                Text(selectedTab.subtitle)
+                    .font(.system(size: 9))
+                    .foregroundStyle(PealsStyle.muted)
+            }
+
+            Spacer()
+
+            Image(systemName: "circle.grid.3x3.fill")
+                .foregroundStyle(PealsStyle.purple)
+        }
+        .padding(.top, 10)
+    }
+
+    private func homeCard(
+        _ title: String,
+        _ subtitle: String,
+        _ symbol: String,
+        _ tab: PealsTab
+    ) -> some View {
+        Button {
+            selectedTab = tab
+        } label: {
+            VStack(alignment: .leading, spacing: 12) {
+                Image(systemName: symbol)
+                    .font(.title2)
+                    .foregroundStyle(PealsStyle.purple)
+
+                Text(title).font(.headline)
 
                 Text(subtitle)
                     .font(.caption)
                     .foregroundStyle(PealsStyle.muted)
-                    .lineLimit(2)
+            }
+            .frame(maxWidth: .infinity, minHeight: 95, alignment: .leading)
+            .padding(15)
+            .background(PealsStyle.card)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .overlay {
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(.white.opacity(0.08), lineWidth: 1)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 115, alignment: .leading)
-        .padding(16)
-        .background(PealsStyle.card)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay {
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(.white.opacity(0.06), lineWidth: 1)
+        .buttonStyle(.plain)
+    }
+
+    private func sectionScreen(
+        title: String,
+        description: String,
+        symbol: String,
+        items: [(String, String)]
+    ) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                header
+
+                HStack(spacing: 14) {
+                    Image(systemName: symbol)
+                        .font(.system(size: 28))
+                        .foregroundStyle(PealsStyle.purple)
+                        .frame(width: 60, height: 60)
+                        .background(PealsStyle.purple.opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(title)
+                            .font(.system(size: 28, weight: .bold))
+                        Text(description)
+                            .font(.subheadline)
+                            .foregroundStyle(PealsStyle.muted)
+                    }
+                }
+
+                ForEach(items, id: \.0) { item in
+                    HStack(spacing: 14) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(item.0).font(.headline)
+                            Text(item.1)
+                                .font(.caption)
+                                .foregroundStyle(PealsStyle.muted)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption.bold())
+                            .foregroundStyle(PealsStyle.purple)
+                    }
+                    .padding(18)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(PealsStyle.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                }
+
+                Text("More features are coming soon.")
+                    .font(.caption)
+                    .foregroundStyle(PealsStyle.muted)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 8)
+            }
+            .padding(20)
         }
+    }
+
+    private var bottomBar: some View {
+        HStack(spacing: 0) {
+            ForEach(PealsTab.allCases, id: \.self) { tab in
+                Button {
+                    selectedTab = tab
+                } label: {
+                    VStack(spacing: 5) {
+                        Image(systemName: tab.symbol)
+                            .font(.system(size: 18))
+                        Text(tab.rawValue)
+                            .font(.system(size: 9))
+                    }
+                    .foregroundStyle(
+                        selectedTab == tab ? PealsStyle.purple : PealsStyle.muted
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.top, 8)
+        .background(PealsStyle.bg)
     }
 }
 
 #Preview {
     ContentView()
 }
+
