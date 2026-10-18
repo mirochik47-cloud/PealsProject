@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 45
 
     env:
-      BUNDLE_ID: com.pealsproject.app
+      BUNDLE_ID: app.coral8757.pisces1195
       TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
 
     steps:
