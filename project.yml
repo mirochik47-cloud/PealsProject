@@ -1,0 +1,22 @@
+name: PealsProject
+
+options:
+  bundleIdPrefix: com.pealsproject
+  deploymentTarget:
+    iOS: "17.0"
+
+targets:
+  PealsProject:
+    type: application
+    platform: iOS
+    sources:
+      - path: PealsProject
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.pealsproject.app
+        PRODUCT_NAME: PealsProject
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Peals Project
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
