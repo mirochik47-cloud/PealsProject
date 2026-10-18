@@ -43,7 +43,9 @@ jobs:
           PROFILE_PLIST="$RUNNER_TEMP/profile.plist"
 
           printf '%s' "$PROFILE_BASE64" | base64 -D > "$PROFILE_PATH"
-          security cms -D -i "$PROFILE_PATH" > "$PROFILE_PLIST"
+          echo "Decoded size: $(wc -c < "$PROFILE_PATH")"
+file "$PROFILE_PATH"
+openssl cms -verify -inform DER -in "$PROFILE_PATH" -noverify -out "$PROFILE_PLIST"
 
           PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")
           PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST")
