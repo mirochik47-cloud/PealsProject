@@ -33,28 +33,38 @@ jobs:
           p12-file-base64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
           p12-password: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
 
+      
       - name: Install provisioning profile
         env:
-          PROFILE_BASE64: ${{ secrets.IOS_PROFILE_BASE64 }}
+          P1: ${{ secrets.IOS_PROFILE_B64_1 }}
+          P2: ${{ secrets.IOS_PROFILE_B64_2 }}
+          P3: ${{ secrets.IOS_PROFILE_B64_3 }}
+          P4: ${{ secrets.IOS_PROFILE_B64_4 }}
+          P5: ${{ secrets.IOS_PROFILE_B64_5 }}
+          P6: ${{ secrets.IOS_PROFILE_B64_6 }}
+          P7: ${{ secrets.IOS_PROFILE_B64_7 }}
+          P8: ${{ secrets.IOS_PROFILE_B64_8 }}
+          P9: ${{ secrets.IOS_PROFILE_B64_9 }}
         run: |
           set -euo pipefail
 
           PROFILE_PATH="$RUNNER_TEMP/peals.mobileprovision"
           PROFILE_PLIST="$RUNNER_TEMP/profile.plist"
 
-          printf '%s' "$PROFILE_BASE64" | base64 -D > "$PROFILE_PATH"
-          echo "Decoded size: $(wc -c < "$PROFILE_PATH")"
-          file "$PROFILE_PATH"
+          printf '%s' "$P1$P2$P3$P4$P5$P6$P7$P8$P9" | base64 -D > "$PROFILE_PATH"
+
+          echo "Decoded profile size: $(wc -c < "$PROFILE_PATH") bytes"
           openssl cms -verify -inform DER -in "$PROFILE_PATH" -noverify -out "$PROFILE_PLIST"
 
           PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")
           PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST")
 
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          cp "$PROFILE_PATH" \
-            "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
 
           echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+          echo "Provisioning profile installed successfully"
+
 
       - name: Generate Xcode project
         run: xcodegen generate
