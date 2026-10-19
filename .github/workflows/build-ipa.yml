@@ -1,11 +1,9 @@
-```yaml
 name: Build Peals Project IPA
 
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -16,19 +14,19 @@ jobs:
     timeout-minutes: 45
 
     env:
-      BUNDLE_ID: app.coral8757.pisces1195
       TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+      BUNDLE_ID: app.coral8757.pisces1195
 
     steps:
-      - name: Checkout source
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode
+      - name: Setup XcodeGen
         run: |
           xcodebuild -version
           brew install xcodegen
 
-      - name: Import signing certificate
+      - name: Import Apple signing certificate
         uses: Apple-Actions/import-codesign-certs@v7
         with:
           p12-file-base64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
@@ -45,21 +43,25 @@ jobs:
           P7: ${{ secrets.IOS_PROFILE_B64_7 }}
           P8: ${{ secrets.IOS_PROFILE_B64_8 }}
           P9: ${{ secrets.IOS_PROFILE_B64_9 }}
+        shell: bash
         run: |
           set -euo pipefail
-          PROFILE_PATH="$RUNNER_TEMP/peals.mobileprovision"
-          PROFILE_PLIST="$RUNNER_TEMP/profile.plist"
 
-          printf '%s' "$P1$P2$P3$P4$P5$P6$P7$P8$P9" | base64 -D > "$PROFILE_PATH"
-          openssl cms -verify -inform DER -in "$PROFILE_PATH" -noverify -out "$PROFILE_PLIST"
+          PROFILE="$RUNNER_TEMP/profile.mobileprovision"
+          PLIST="$RUNNER_TEMP/profile.plist"
 
-          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")
-          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST")
+          printf '%s' "$P1$P2$P3$P4$P5$P6$P7$P8$P9" | base64 -D > "$PROFILE"
+
+          openssl cms -verify -inform DER \
+            -in "$PROFILE" -noverify -out "$PLIST"
+
+          UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PLIST")
+          NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PLIST")
 
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          cp "$PROFILE" "$HOME/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
 
-          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+          echo "PROFILE_NAME=$NAME" >> "$GITHUB_ENV"
           echo "Provisioning profile installed."
 
       - name: Generate Xcode project
@@ -67,17 +69,16 @@ jobs:
           set -euo pipefail
           xcodegen generate
 
-      - name: Ensure asset catalog metadata
+      - name: Validate asset catalog
         run: |
           set -euo pipefail
-          python3 -c 'import json; from pathlib import Path; p=Path("PealsProject/Assets.xcassets/Contents.json"); p.parent.mkdir(parents=True, exist_ok=True); p.write_text(json.dumps({"info":{"author":"xcode","version":1}}, indent=2)+"\n") if not p.exists() else json.loads(p.read_text())'
-          python3 -c 'import json; from pathlib import Path; [json.loads(p.read_text()) for p in Path("PealsProject/Assets.xcassets").rglob("Contents.json")]'
 
-      - name: Create archive
+          python3 -c 'import json; from pathlib import Path; root=Path("PealsProject/Assets.xcassets"); root.mkdir(parents=True, exist_ok=True); p=root/"Contents.json"; p.write_text("{\n  \"info\": {\"author\": \"xcode\", \"version\": 1}\n}\n") if not p.exists() else json.loads(p.read_text()); [(json.loads(f.read_text())) for f in root.rglob("Contents.json")]'
+
+      - name: Archive app
         shell: bash
         run: |
           set -uo pipefail
-          LOG="$RUNNER_TEMP/archive.log"
 
           xcodebuild \
             -project PealsProject.xcodeproj \
@@ -90,33 +91,33 @@ jobs:
             DEVELOPMENT_TEAM="$TEAM_ID" \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
-            archive 2>&1 | tee "$LOG"
+            archive 2>&1 | tee "$RUNNER_TEMP/archive.log"
 
           result=${PIPESTATUS[0]}
           if [ "$result" -ne 0 ]; then
-            echo "===== Build errors ====="
-            grep -n -i -E 'error:|actool|Assets.xcassets|failed|warning:' "$LOG" | tail -100 || true
+            echo "===== BUILD ERRORS ====="
+            grep -n -E 'error:|fatal error:|BUILD FAILED|ARCHIVE FAILED|error generated' \
+              "$RUNNER_TEMP/archive.log" | tail -80 || true
             exit "$result"
           fi
 
-      - name: Prepare export options
+      - name: Create export options
         run: |
-          set -euo pipefail
-          python3 -c 'import os, plistlib; options={"method":"ad-hoc","teamID":os.environ["TEAM_ID"],"signingStyle":"manual","signingCertificate":"Apple Distribution","provisioningProfiles":{os.environ["BUNDLE_ID"]:os.environ["PROFILE_NAME"]}}; plistlib.dump(options, open("ExportOptions.plist","wb"))'
+          python3 -c 'import os,plistlib; d={"method":"ad-hoc","teamID":os.environ["TEAM_ID"],"signingStyle":"manual","signingCertificate":"Apple Distribution","provisioningProfiles":{os.environ["BUNDLE_ID"]:os.environ["PROFILE_NAME"]}}; plistlib.dump(d,open("ExportOptions.plist","wb"))'
 
       - name: Export IPA
         run: |
           set -euo pipefail
+
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/PealsProject.xcarchive" \
             -exportPath "$RUNNER_TEMP/export" \
             -exportOptionsPlist ExportOptions.plist
 
-      - name: Upload IPA artifact
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: PealsProject-IPA
           path: ${{ runner.temp }}/export/*.ipa
           if-no-files-found: error
           retention-days: 7
-```
