@@ -13,7 +13,7 @@ targets:
       - path: PealsProject
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.pealsproject.app
+        PRODUCT_BUNDLE_IDENTIFIER: app.coral8757.pisces1195
         PRODUCT_NAME: PealsProject
         SWIFT_VERSION: "5.0"
         TARGETED_DEVICE_FAMILY: "1"
