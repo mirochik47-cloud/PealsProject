@@ -1,3 +1,4 @@
+```yaml
 name: Build Peals Project IPA
 
 on:
@@ -33,7 +34,6 @@ jobs:
           p12-file-base64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
           p12-password: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
 
-      
       - name: Install provisioning profile
         env:
           P1: ${{ secrets.IOS_PROFILE_B64_1 }}
@@ -51,27 +51,70 @@ jobs:
           PROFILE_PATH="$RUNNER_TEMP/peals.mobileprovision"
           PROFILE_PLIST="$RUNNER_TEMP/profile.plist"
 
-          printf '%s' "$P1$P2$P3$P4$P5$P6$P7$P8$P9" | base64 -D > "$PROFILE_PATH"
+          printf '%s' "$P1$P2$P3$P4$P5$P6$P7$P8$P9" \
+            | base64 -D > "$PROFILE_PATH"
 
           echo "Decoded profile size: $(wc -c < "$PROFILE_PATH") bytes"
-          openssl cms -verify -inform DER -in "$PROFILE_PATH" -noverify -out "$PROFILE_PLIST"
 
-          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")
-          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST")
+          openssl cms -verify -inform DER \
+            -in "$PROFILE_PATH" \
+            -noverify \
+            -out "$PROFILE_PLIST"
+
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy \
+            -c 'Print :UUID' "$PROFILE_PLIST")
+
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy \
+            -c 'Print :Name' "$PROFILE_PLIST")
 
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+
+          cp "$PROFILE_PATH" \
+            "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
 
           echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
-          echo "Provisioning profile installed successfully"
-
+          echo "Provisioning profile installed."
 
       - name: Generate Xcode project
-        run: xcodegen generate
-
-      - name: Create archive
         run: |
           set -euo pipefail
+          xcodegen generate
+
+      - name: Ensure asset catalog metadata
+        run: |
+          set -euo pipefail
+
+          ASSETS="PealsProject/Assets.xcassets"
+          mkdir -p "$ASSETS"
+
+          if [ ! -f "$ASSETS/Contents.json" ]; then
+            cat > "$ASSETS/Contents.json" <<'EOF'
+          {
+            "info": {
+              "author": "xcode",
+              "version": 1
+            }
+          }
+          EOF
+          fi
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("PealsProject/Assets.xcassets")
+          for path in root.rglob("Contents.json"):
+              with path.open() as f:
+                  json.load(f)
+              print("Valid asset metadata:", path)
+          PY
+
+      - name: Create archive
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          LOG="$RUNNER_TEMP/archive.log"
 
           xcodebuild \
             -project PealsProject.xcodeproj \
@@ -84,10 +127,22 @@ jobs:
             DEVELOPMENT_TEAM="$TEAM_ID" \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
-            archive
+            archive 2>&1 | tee "$LOG"
+
+          result=${PIPESTATUS[0]}
+
+          if [ "$result" -ne 0 ]; then
+            echo "===== Relevant build errors ====="
+            grep -n -i -E \
+              'error:|actool|Assets.xcassets|failed|warning:' \
+              "$LOG" | tail -100 || true
+            exit "$result"
+          fi
 
       - name: Prepare export options
         run: |
+          set -euo pipefail
+
           python3 - <<'PY'
           import os
           import plistlib
@@ -122,3 +177,5 @@ jobs:
           path: ${{ runner.temp }}/export/*.ipa
           if-no-files-found: error
           retention-days: 7
+```
+
