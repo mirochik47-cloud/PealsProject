@@ -69,13 +69,31 @@ jobs:
           set -euo pipefail
           xcodegen generate
 
-      - name: Validate asset catalog
+            - name: Validate asset catalog
         run: |
           set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
 
-          python3 -c 'import json; from pathlib import Path; root=Path("PealsProject/Assets.xcassets"); root.mkdir(parents=True, exist_ok=True); p=root/"Contents.json"; p.write_text("{\n  \"info\": {\"author\": \"xcode\", \"version\": 1}\n}\n") if not p.exists() else json.loads(p.read_text()); [(json.loads(f.read_text())) for f in root.rglob("Contents.json")]'
+          root = Path("PealsProject/Assets.xcassets")
+          icon = root / "AppIcon.appiconset"
+          png = icon / "PealsIcon.png"
 
-      - name: Archive app
+          root.mkdir(parents=True, exist_ok=True)
+          (root / "Contents.json").write_text(
+              json.dumps({"info": {"author": "xcode", "version": 1}}, indent=2)
+          )
+
+          assert png.is_file(), f"Missing icon: {png}"
+          data = json.loads((icon / "Contents.json").read_text())
+          assert any(
+              image.get("filename") == "PealsIcon.png"
+              for image in data.get("images", [])
+          ), "AppIcon Contents.json does not reference PealsIcon.png"
+
+          print("AppIcon asset validated:", png)
+          PY
         shell: bash
         run: |
           set -uo pipefail
